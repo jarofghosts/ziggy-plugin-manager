@@ -1,0 +1,2 @@
+ziggy-plugin-manager
+====
