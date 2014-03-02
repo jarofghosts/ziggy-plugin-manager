@@ -42,16 +42,16 @@ function plugin_manager(ziggy) {
 
       var already_installed = false
 
-      ziggy.settings.plugins.forEach(function(plugin) {
-        if (plugin.name === name) already_installed = true
-      })
+      var plugins = ziggy.settings.plugins
 
-      if (!already_installed) {
-        ziggy.settings.plugins.push({
-            name: name
-          , setup: get_plugin_setup(name)
-        })
+      for (var i = 0, l = plugins.length; i < l; ++i) {
+        if (plugins[i].name === name) plugins.splice(i, 1)
       }
+
+      ziggy.settings.plugins.push({
+          name: name
+        , setup: get_plugin_setup(name)
+      })
 
       refresh_plugins()
 
