@@ -20,5 +20,8 @@
   "bugs": {
     "url": "https://github.com/jarofghosts/ziggy-plugin-manager/issues"
   },
-  "homepage": "https://github.com/jarofghosts/ziggy-plugin-manager"
+  "homepage": "https://github.com/jarofghosts/ziggy-plugin-manager",
+  "dependencies": {
+    "dotpather": "~0.1.3"
+  }
 }

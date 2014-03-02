@@ -13,7 +13,7 @@ function plugin_manager(ziggy) {
       , to_do = bits[1]
       , name = bits[2]
 
-    if (command !== 'plugin' || user.userLevel < 3) return
+    if (command !== '!plugin' || user.userLevel < 3) return
 
     if (to_do === 'list' || to_do === 'ls') return list_plugins()
     if (to_do === 'install') return install_plugin()
@@ -32,9 +32,9 @@ function plugin_manager(ziggy) {
     }
 
     function install_plugin() {
-      var npm = spawn('npm', ['install', 'ziggy-' + name + '@latest'])
+      var npm = spawn('npm', ['i', 'ziggy-' + name + '@latest', '-g'])
 
-      spawn.on('close', finalize_install)
+      npm.on('close', finalize_install)
     }
 
     function finalize_install(code) {
@@ -53,7 +53,7 @@ function plugin_manager(ziggy) {
         })
       }
 
-      refreshPlugins()
+      refresh_plugins()
 
       ziggy.say(channel, 'plugin ' + name + ' installed.')
     }
@@ -75,9 +75,9 @@ function plugin_manager(ziggy) {
       ziggy.activatePlugins()
     }
 
-    function get_plugin_step(name) {
+    function get_plugin_setup(name) {
       try {
-        return require(name)
+        return require('ziggy-' + name)
       } catch(e) {
         return noop
       }
