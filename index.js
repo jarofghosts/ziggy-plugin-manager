@@ -13,7 +13,8 @@ function plugin_manager(ziggy) {
       , to_do = bits[1]
       , name = bits[2]
 
-    if (command !== '!plugin' || user.userLevel < 3) return
+    if (command !== '!plugin' || !user.info.authenticated ||
+        user.info.level < 3) return
 
     if (to_do === 'list' || to_do === 'ls') return list_plugins()
     if (to_do === 'install') return install_plugin()
