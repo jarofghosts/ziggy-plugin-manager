@@ -1,6 +1,6 @@
 {
   "name": "ziggy-plugin-manager",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "plugin management for ziggy irc bot",
   "main": "index.js",
   "scripts": {
