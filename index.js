@@ -28,7 +28,10 @@ function plugin_manager(ziggy) {
 
       ziggy.say(
           channel
-        , 'installed plugins: ' + plugins.map(lookup).join(', ')
+        , 'installed plugins: ' + plugins
+            .map(lookup)
+            .map(no_ziggy)
+            .join(', ')
       )
     }
 
@@ -38,18 +41,23 @@ function plugin_manager(ziggy) {
       npm.on('close', finalize_install)
     }
 
+    function no_ziggy(name) {
+      return name.replace(/^ziggy\-/, '')
+    }
+
     function finalize_install(code) {
       if (code) return ziggy.say(channel, 'install of ' + name + ' failed.')
 
       var already_installed = false
+        , plugins
 
-      var plugins = ziggy.settings.plugins
+      plugins = ziggy.settings.plugins
 
       for (var i = 0, l = plugins.length; i < l; ++i) {
         if (plugins[i].name === name) plugins.splice(i, 1)
       }
 
-      ziggy.settings.plugins.push({
+      plugins.push({
           name: name
         , setup: get_plugin_setup(name)
       })
