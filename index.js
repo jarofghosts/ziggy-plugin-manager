@@ -1,5 +1,6 @@
 var spawn = require('child_process').spawn
   , dotpath = require('dotpather')
+  , path = require('path')
 
 module.exports = plugin_manager
 
@@ -36,7 +37,7 @@ function plugin_manager(ziggy) {
     }
 
     function install_plugin() {
-      var npm = spawn('npm', ['i', 'ziggy-' + name + '@latest', '-g'])
+      var npm = spawn('npm', ['i', 'ziggy-' + name + '@latest'])
 
       npm.on('close', finalize_install)
     }
@@ -53,14 +54,14 @@ function plugin_manager(ziggy) {
 
       plugins = ziggy.settings.plugins
 
-      for (var i = 0, l = plugins.length; i < l; ++i) {
-        if (plugins[i].name === name) plugins.splice(i, 1)
-      }
+      plugins = splice(plugins)
 
       plugins.push({
           name: name
         , setup: get_plugin_setup(name)
       })
+
+      ziggy.settings.plugins = plugins
 
       refresh_plugins()
 
@@ -68,15 +69,19 @@ function plugin_manager(ziggy) {
     }
 
     function remove_plugin() {
-      var plugins = ziggy.settings.plugins
-
-      for (var i = 0, l = plugins.length; i < l; ++i) {
-        if (plugins[i].name === name) plugins.splice(i, 1)
-      }
+      ziggy.settings.plugins = splice(ziggy.settings.plugins)
 
       refresh_plugins()
 
       ziggy.say(channel, 'plugin ' + name + ' uninstalled.')
+    }
+
+    function splice(plugins) {
+      return plugins.filter(remove_selected)
+
+      function remove_selected(plugin) {
+        return plugin.name !== name
+      }
     }
 
     function refresh_plugins() {
@@ -86,9 +91,15 @@ function plugin_manager(ziggy) {
 
     function get_plugin_setup(name) {
       try {
-        return require('ziggy-' + name)
+        return require(
+            path.resolve(process.cwd(), './node_modules/ziggy-' + name)
+        )
       } catch(e) {
-        return noop
+        try {
+          return require('ziggy-' + name)
+        } catch(e) {
+          return noop
+        }
       }
     }
   }
