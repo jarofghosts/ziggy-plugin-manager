@@ -90,6 +90,8 @@ function plugin_manager(ziggy) {
     }
 
     function get_plugin_setup(name) {
+      require.cache = {}
+
       try {
         return require('./node_modules/ziggy-' + name)
       } catch(e) {
