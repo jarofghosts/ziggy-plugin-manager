@@ -14,12 +14,12 @@ function plugin_manager(ziggy) {
       , to_do = bits[1]
       , name = bits[2]
 
-    if (command !== '!plugin' || !user.info.authenticated ||
+    if(command !== '!plugin' || !user.info.authenticated ||
         user.info.level < 3) return
 
-    if (to_do === 'list' || to_do === 'ls') return list_plugins()
-    if (to_do === 'install') return install_plugin()
-    if (to_do === 'remove') return remove_plugin()
+    if(to_do === 'list' || to_do === 'ls') return list_plugins()
+    if(to_do === 'install') return install_plugin()
+    if(to_do === 'remove') return remove_plugin()
 
     ziggy.say(channel, 'unrecognized command') 
 
@@ -47,7 +47,7 @@ function plugin_manager(ziggy) {
     }
 
     function finalize_install(code) {
-      if (code) return ziggy.say(channel, 'install of ' + name + ' failed.')
+      if(code) return ziggy.say(channel, 'install of ' + name + ' failed.')
 
       var already_installed = false
         , plugins
@@ -91,9 +91,7 @@ function plugin_manager(ziggy) {
 
     function get_plugin_setup(name) {
       try {
-        return require(
-            path.resolve(process.cwd(), './node_modules/ziggy-' + name)
-        )
+        return require('./node_modules/ziggy-' + name)
       } catch(e) {
         try {
           return require('ziggy-' + name)
