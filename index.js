@@ -90,16 +90,12 @@ function plugin_manager(ziggy) {
     }
 
     function get_plugin_setup(name) {
-      require.cache = {}
+      delete require.cache[require.resolve('ziggy-' + name)]
 
       try {
-        return require('./node_modules/ziggy-' + name)
+        return require('ziggy-' + name)
       } catch(e) {
-        try {
-          return require('ziggy-' + name)
-        } catch(e) {
-          return noop
-        }
+        return noop
       }
     }
   }
