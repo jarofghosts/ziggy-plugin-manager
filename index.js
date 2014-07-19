@@ -1,67 +1,43 @@
 var spawn = require('child_process').spawn
   , path = require('path')
+  , fs = require('fs')
 
 var dotpath = require('dotpather')
+
+var filePath = path.join(process.cwd(), '.plugins.json')
+  , offset = null
 
 module.exports = pluginManager
 
 function pluginManager(ziggy) {
+  if(offset === null) {
+    offset = ziggy.settings.plugins.length
+
+    try {
+      var initial = require(filePath)
+
+      for(var i = 0, l = initial.length; i < l; ++i) {
+        installPlugin(initial[i])
+      }
+    } catch(e) {
+    }
+  }
+
   ziggy.on('message', parseMessage)
   ziggy.on('pm', parsePm)
 
-  function parseMessage(user, channel, text) {
-    var bits = text.split(/\s+/)
-      , command = bits[0]
-      , toDo = bits[1]
-      , names
+  function installPlugin(name, _cb) {
+    var npm = spawn('npm', ['i', 'ziggy-' + name + '@latest'])
+      , cb = _cb || Function()
 
-    names = bits.slice(2)
-
-    if(command !== '!plugin' || !user.info.authenticated ||
-        user.info.level < 3) return
-
-    if(toDo === 'list' || toDo === 'ls') return listPlugins()
-    if(toDo === 'install') return installPlugins()
-    if(toDo === 'remove') return removePlugins()
-
-    ziggy.say(channel, 'unrecognized command') 
-
-    function listPlugins() {
-      var plugins = ziggy.settings.plugins
-        , lookup = dotpath('name')
-
-      ziggy.say(
-          channel
-        , 'installed plugins: ' + plugins
-            .map(lookup)
-            .map(noZiggy)
-            .join(', ')
-      )
-    }
-
-    function installPlugins() {
-      name.split(' ').filter(Boolean).forEach(installPlugin)
-    }
-
-    function installPlugin(name) {
-      var npm = spawn('npm', ['i', 'ziggy-' + name + '@latest'])
-
-      npm.on('close', finalizeInstall)
-    }
-
-    function noZiggy(name) {
-      return name.replace(/^ziggy\-/, '')
-    }
+    npm.on('close', finalizeInstall)
 
     function finalizeInstall(code) {
-      if(code) return ziggy.say(channel, 'install of ' + name + ' failed.')
+      if(code) return cb(code)
 
-      var already_installed = false
-        , plugins
+      var plugins = ziggy.settings.plugins
 
-      plugins = ziggy.settings.plugins
-
-      plugins = splice(plugins)
+      plugins = splice(name)(plugins)
 
       plugins.push({
           name: name
@@ -72,43 +48,76 @@ function pluginManager(ziggy) {
 
       refreshPlugins()
 
-      ziggy.say(channel, 'plugin ' + name + ' installed.')
+      cb(null, name)
     }
+  }
 
-    function removePlugins() {
-      names.split(' ').filter(Boolean).forEeach(removePlugin)
-    }
+  function parseMessage(user, channel, text) {
+    var bits = text.split(/\s+/)
+      , command = bits[0]
+      , toDo = bits[1]
+      , names
 
-    function removePlugin(name) {
-      ziggy.settings.plugins = splice(ziggy.settings.plugins)
+    names = (bits.length > 2 && bits.slice(2) || []).filter(Boolean)
 
-      refreshPlugins()
+    if(command !== '!plugin' || !user.info.authenticated ||
+        user.info.level < 3) return
 
-      ziggy.say(channel, 'plugin ' + name + ' uninstalled.')
-    }
+    if(toDo === 'list' || toDo === 'ls') return listPlugins()
+    if(toDo === 'install') return affectPlugins(installPlugin, 'install')
+    if(toDo === 'remove') return affectPlugins(removePlugin, 'uninstall')
 
-    function splice(plugins) {
-      return plugins.filter(removeSelected)
+    ziggy.say(channel, 'unrecognized command') 
 
-      function removeSelected(plugin) {
-        return plugin.name !== name
+    function affectPlugins(fn, type) {
+      var total = names.length
+
+      for(var i = 0; i < total; ++i) {
+        fn(names[i], countdown)
+      }
+
+      function countdown(err, name) {
+        if(!--total) {
+          writePluginsFile(ziggy.settings.plugins.slice(offset).map(toName))
+        }
+
+        if(err) return ziggy.say(channel, type + ' of ' + name + ' failed.')
+
+        ziggy.say(channel, 'plugin ' + name + ' ' + type + 'ed.')
       }
     }
 
-    function refreshPlugins() {
-      ziggy.deactivatePlugins()
-      ziggy.activatePlugins()
-    }
+    function listPlugins() {
+      var plugins = ziggy.settings.plugins.slice(offset)
+        , lookup = dotpath('name')
 
-    function getPluginSetup(name) {
-      delete require.cache[require.resolve('ziggy-' + name)]
-
-      try {
-        return require('ziggy-' + name)
-      } catch(e) {
-        return noop
-      }
+      ziggy.say(
+          channel
+        , 'installed plugins: ' + plugins
+            .map(lookup)
+            .map(noZiggy)
+            .join(', ')
+      )
     }
+  }
+
+  function noZiggy(name) {
+    return name.replace(/^ziggy\-/, '')
+  }
+
+  function removePlugin(name, _cb) {
+    var cb = _cb || Function()
+
+    ziggy.settings.plugins = splice(name)(ziggy.settings.plugins)
+
+    refreshPlugins()
+
+    process.nextTick(cb.bind(null, null, name))
+  }
+
+  function refreshPlugins() {
+    ziggy.deactivatePlugins()
+    ziggy.activatePlugins()
   }
 
   function parsePm(user, text) {
@@ -116,4 +125,32 @@ function pluginManager(ziggy) {
   }
 }
 
-function noop() {}
+function writePluginsFile(plugins) {
+  fs.writeFile(filePath, JSON.stringify(plugins), function(err) {
+    if(err) console.error('error writing plugins file ' + filePath)
+  })
+}
+
+function toName(plugin) {
+  return plugin.name
+}
+
+function splice(name) {
+  return function spliceName(plugins) {
+    return plugins.filter(removeSelected)
+
+    function removeSelected(plugin) {
+      return plugin.name !== name
+    }
+  }
+}
+
+function getPluginSetup(name) {
+  delete require.cache[require.resolve('ziggy-' + name)]
+
+  try {
+    return require('ziggy-' + name)
+  } catch(e) {
+    return Function()
+  }
+}

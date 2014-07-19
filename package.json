@@ -22,6 +22,6 @@
   },
   "homepage": "https://github.com/jarofghosts/ziggy-plugin-manager",
   "dependencies": {
-    "dotpather": "~0.1.3"
+    "dotpather": "^0.1.3",
   }
 }
